@@ -29,11 +29,42 @@ public:
         // TODO
     }
 
-    // TODO
-    TextureID registerTexture(const std::string& filepath) { return {}; };
+    TextureID registerTexture(const std::string& filepath) {
+        return mAtlas.registerTexture(filepath);
+    };
 
-    // TODO
-    SpriteID createSprite(TextureID textureID) { return {}; };
+    SpriteID createSprite(TextureID textureID) {
+        sf::FloatRect uvBounds = mAtlas.getBoundsUV(textureID);
+        float u0 = uvBounds.position.x;
+        float v0 = uvBounds.position.y;
+        float u1 = u0 + uvBounds.size.x;
+        float v1 = v0 + uvBounds.size.y;
+
+        // Size in world units
+        sf::Vector2u atlasSize = mAtlas.getTexture().getSize();
+        float width = uvBounds.size.x * atlasSize.x;
+        float height = uvBounds.size.y * atlasSize.y;
+
+        sf::Vertex botLeft{{0.0f, 0.0f}, sf::Color::White, {u0, v0}};
+        sf::Vertex botRight{{width, 0.0f}, sf::Color::White, {u1, v0}};
+        sf::Vertex topLeft{{0.0f, height}, sf::Color::White, {u0, v1}};
+        sf::Vertex topRight{{width,height}, sf::Color::White, {u1, v1}};
+
+        // First triangle
+        mVertices.append(botLeft);
+        mVertices.append(botRight);
+        mVertices.append(topRight);
+
+        // Second triangle
+        mVertices.append(botLeft);
+        mVertices.append(topRight);
+        mVertices.append(topLeft);
+
+        mTransforms.push_back(BasicTransform());
+        SpriteID newID = mNumSprites;
+        mNumSprites++;  // increment total number of sprites
+        return newID;
+    };
 
     // TODO
     void setTexture(SpriteID sprite, TextureID newTexture) {};
