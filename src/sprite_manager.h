@@ -25,8 +25,8 @@ public:
         : mVertices(sf::PrimitiveType::Triangles),
           mNumSprites{0},
           mAtlas(atlasSize, padding),
-          mShader(std::filesystem::path{"main.vert"}, std::filesystem::path{"main.frag"}) {
-        // TODO
+          mShader(std::filesystem::path{"main_sfml.vert"}, std::filesystem::path{"main.frag"}) {
+        mShader.setUniform("texture", sf::Shader::CurrentTexture);
     }
 
     TextureID registerTexture(const std::string& filepath) {
@@ -41,14 +41,12 @@ public:
         float v1 = v0 + uvBounds.size.y;
 
         // Size in world units
-        sf::Vector2u atlasSize = mAtlas.getTexture().getSize();
-        float width = uvBounds.size.x * atlasSize.x;
-        float height = uvBounds.size.y * atlasSize.y;
+        sf::Vector2u size = mAtlas.getSizePixels(textureID);
 
         sf::Vertex botLeft{{0.0f, 0.0f}, sf::Color::White, {u0, v0}};
-        sf::Vertex botRight{{width, 0.0f}, sf::Color::White, {u1, v0}};
-        sf::Vertex topLeft{{0.0f, height}, sf::Color::White, {u0, v1}};
-        sf::Vertex topRight{{width,height}, sf::Color::White, {u1, v1}};
+        sf::Vertex botRight{{size.x, 0.0f}, sf::Color::White, {u1, v0}};
+        sf::Vertex topLeft{{0.0f, size.y}, sf::Color::White, {u0, v1}};
+        sf::Vertex topRight{{size.x, size.y}, sf::Color::White, {u1, v1}};
 
         // First triangle
         mVertices.append(botLeft);
@@ -66,20 +64,57 @@ public:
         return newID;
     };
 
-    // TODO
-    void setTexture(SpriteID sprite, TextureID newTexture) {};
+    void setTexture(SpriteID sprite, TextureID newTexture) {
+        sf::FloatRect newUV = mAtlas.getBoundsUV(newTexture);
+        float u0 = newUV.position.x;
+        float v0 = newUV.position.y;
+        float u1 = u0 + newUV.size.x;
+        float v1 = v0 + newUV.size.y;
+
+        sf::Vector2u size = mAtlas.getSizePixels(newTexture);
+
+        // Create new vertices based on new size and uv bounds
+        sf::Vertex newBotLeft{{0.0f, 0.0f}, sf::Color::White, {u0, v0}};
+        sf::Vertex newBotRight{{size.x, 0.0f}, sf::Color::White, {u1, v0}};
+        sf::Vertex newTopLeft{{0.0f, size.y}, sf::Color::White, {u0, v1}};
+        sf::Vertex newTopRight{{size.x, size.y}, sf::Color::White, {u1, v1}};
+
+        size_t firstVertex = sprite * 6; // 6 vertices for each sprite
+        // Follow the same order as the vertices were set in createSprite
+        mVertices[firstVertex] = newBotLeft;
+        mVertices[firstVertex + 1] = newBotRight;
+        mVertices[firstVertex + 2] = newTopRight;
+
+        mVertices[firstVertex + 3] = newBotLeft;
+        mVertices[firstVertex + 4] = newTopRight;
+        mVertices[firstVertex + 5] = newTopLeft;
+    };
 
     // TODO
-    void draw(sf::RenderTarget& target, sf::RenderStates states) const {};
+    void draw(sf::RenderTarget& target, sf::RenderStates states) const {
+        sf::VertexArray temp = mVertices;
+        for (size_t i = 0; i < temp.getVertexCount(); i++) {
+            const BasicTransform transform = mTransforms[i / 6];
+            temp[i].position = transform.applyPoint(mVertices[i].position);
+        }
+
+        states.shader = &mShader;
+        states.texture = &mAtlas.getTexture();
+        target.draw(temp, states);
+    };
 
     // TODO
     void drawGL() {};
 
     // TODO
-    BasicTransform& getTransform(SpriteID id) {}
+    BasicTransform& getTransform(SpriteID id) {
+        return mTransforms[id];
+    }
 
     // TODO
-    const TextureAtlas& getAtlas() const {};
+    const TextureAtlas& getAtlas() const {
+        return mAtlas;
+    };
 
 private:
     sf::VertexArray mVertices;

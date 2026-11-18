@@ -1,2 +1,11 @@
 2a.
+With batching, the FPS converged to about 4.98. Without batching, it converged to about 4.89. 
+Batching was slightly faster faster.
+
+The difference would be from draw calls, as the unbatched version needs to make one draw call per sprite,
+and each one has related CPU overhead. The batched version reduces that overhead by putting all sprites
+into one vertex array, only needing one draw call.
+
 2b.
+Use a depth buffer. Each sprite ets a z value and the rasterizers depth test decides which fragments
+go in front, instead of sorting them by hand.
